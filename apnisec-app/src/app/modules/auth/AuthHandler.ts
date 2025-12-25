@@ -3,6 +3,7 @@ import { BaseHandler } from "../../core/BaseHandler";
 import { AuthService } from "./AuthService";
 import { AuthValidator } from "./AuthValidator";
 import { JwtUtils } from "../../core/JwtUtils";
+import { AppError } from "@/app/core/AppError";
 
 export class AuthHandler extends BaseHandler {
   private service: AuthService;
@@ -14,19 +15,29 @@ export class AuthHandler extends BaseHandler {
 
   async handle(req: NextRequest): Promise<NextResponse> {
     const { pathname } = req.nextUrl;
-    const body = await req.json();
 
     try {
       if (pathname.includes("/register")) {
+        const body = await req.json();
         const validator = AuthValidator.forRegister();
-        const data = validator.validate(body);
+        const data = validator.validate(body) as {
+          email: string;
+          password: string;
+          name?: string;
+        };
+
         const result = await this.service.register(data);
         return this.json(result, 201);
       }
 
       if (pathname.includes("/login")) {
+        const body = await req.json();
         const validator = AuthValidator.forLogin();
-        const data = validator.validate(body);
+        const data = validator.validate(body) as {
+          email: string;
+          password: string;
+        };
+
         const result = await this.service.login(data.email, data.password);
         return this.json(result);
       }
@@ -38,9 +49,18 @@ export class AuthHandler extends BaseHandler {
 
       if (pathname.includes("/me")) {
         const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-        if (!token) throw new AppError("No token provided", 401);
-        const jwtUtils = new JwtUtils(process.env.JWT_SECRET!); // Temp; better inject
+
+        if (!token) {
+          throw new AppError("No token provided", 401);
+        }
+
+        const jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
         const decoded = jwtUtils.verify(token);
+
+        if (typeof decoded === "string") {
+          throw new AppError("Invalid token payload", 401);
+        }
+
         const result = await this.service.getMe(decoded.userId);
         return this.json(result);
       }
