@@ -7,35 +7,50 @@ import { createSchema } from "./IssueValidator";
 import { CustomJwtPayload } from "../../core/JwtUtils";
 import { Issue } from "@/generated/prisma/client";
 import { CreateIssueData, UpdateIssueData } from "./types";
+import { EmailService } from "../../core/EmailService";
 
 export class IssueService {
   private issueRepo: IssueRepository;
   private userRepo: UserRepository;
   private jwtUtils: JwtUtils;
+  private emailService?: EmailService;
 
   constructor(
     issueRepo: IssueRepository,
     userRepo: UserRepository,
-    jwtUtils: JwtUtils
+    jwtUtils: JwtUtils,
+    emailService?: EmailService
   ) {
     this.issueRepo = issueRepo;
     this.userRepo = userRepo;
     this.jwtUtils = jwtUtils;
+    this.emailService = emailService;
   }
 
   async create(data: CreateIssueData, token: string) {
-    const decoded: CustomJwtPayload = this.jwtUtils.verify(
-      token.replace("Bearer ", "")
-    );
+    const decoded = this.jwtUtils.verify(token.replace("Bearer ", ""));
     const user = await this.userRepo.findById(decoded.userId);
     if (!user) throw new AppError("User not found", 404);
-    return this.issueRepo.create({ ...data, userId: user.id });
+
+    const issue = await this.issueRepo.create({ ...data, userId: user.id });
+
+    if (this.emailService && user.email) {
+      this.emailService
+        .sendIssueCreated(user.email, {
+          type: issue.type,
+          title: issue.title,
+          description: issue.description || undefined,
+        })
+        .catch(console.error);
+    }
+
+    return issue;
   }
 
   async list(filters: { type?: string }, token: string) {
-    const decoded: CustomJwtPayload = this.jwtUtils.verify(
+    const decoded = this.jwtUtils.verify(
       token.replace("Bearer ", "")
-    );
+    ) as CustomJwtPayload;
     return this.issueRepo.findByUser(decoded.userId, filters);
   }
 

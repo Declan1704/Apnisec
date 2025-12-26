@@ -5,19 +5,24 @@ import { IssueRepository } from "../../modules/issues/IssueRepository";
 import { JwtUtils } from "../../core/JwtUtils";
 import { IssueService } from "../../modules/issues/IssueService";
 import { IssueHandler } from "../../modules/issues/IssueHandler";
-import { RateLimiter } from "../../core/RateLimiter"; // ← Add this import
+import { RateLimiter } from "../../core/RateLimiter";
+import { EmailService } from "../../core/EmailService";
 
-// Create shared instances
+const rateLimiter = new RateLimiter();
 const userRepo = new UserRepository(prisma);
 const issueRepo = new IssueRepository(prisma);
 const jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
-const issueService = new IssueService(issueRepo, userRepo, jwtUtils);
-
-// ← Create ONE RateLimiter instance (100 requests / 15 minutes)
-const limiter = new RateLimiter();
-
-// ← Pass limiter to IssueHandler
-const issueHandler = new IssueHandler(issueService, limiter);
+const emailService = new EmailService(
+  process.env.RESEND_API_KEY!,
+  process.env.RESEND_FROM_EMAIL || "noreply@apnisec.com"
+);
+const issueService = new IssueService(
+  issueRepo,
+  userRepo,
+  jwtUtils,
+  emailService
+);
+export const issueHandler = new IssueHandler(issueService, rateLimiter);
 
 export async function GET(req: NextRequest) {
   return issueHandler.handle(req);

@@ -1,23 +1,33 @@
+// src/core/BaseHandler.ts
 import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "./AppError";
 import { RateLimiter } from "./RateLimiter";
+
 export abstract class BaseHandler {
-  protected limiter: RateLimiter;
+  protected limiter?: RateLimiter;
 
   constructor(limiter: RateLimiter) {
+    if (!limiter) {
+      throw new Error("RateLimiter instance is required"); // This will crash early if forgotten
+    }
     this.limiter = limiter;
   }
+
   abstract handle(req: NextRequest): Promise<NextResponse>;
 
   protected json(
     data: unknown,
     status: number = 200,
-    headers?: Headers
+    rateHeaders?: Headers
   ): NextResponse {
     const res = NextResponse.json(data, { status });
-    if (headers) {
-      headers.forEach((value, key) => res.headers.set(key, value));
+
+    if (rateHeaders) {
+      rateHeaders.forEach((value, key) => {
+        res.headers.set(key, value);
+      });
     }
+
     return res;
   }
 
@@ -27,6 +37,7 @@ export abstract class BaseHandler {
       process.env.NODE_ENV === "production"
         ? "Internal Server Error"
         : err.message;
-    return this.json({ error: message }, status);
+
+    return NextResponse.json({ error: message }, { status });
   }
 }
