@@ -38,5 +38,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/api/issues/:path*", "/api/auth/:path*"], // Now applies to all APIs
+  matcher: ["/api/issues/:path*", "/api/auth/:path*"], // Now applies to all APIs
 };

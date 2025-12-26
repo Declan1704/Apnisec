@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BaseHandler } from "../../core/BaseHandler";
+import { BaseHandler } from "../../core/BaseHandler"; // Adjust path if needed
 import { IssueService } from "./IssueService";
-import { IssueValidator } from "./IssueValidator";
-import { z } from "zod";
-import { AppError } from "@/app/core/AppError";
+import { IssueValidator } from "./IssueValidator"; // This should now resolve
+import { AppError } from "../../core/AppError"; // Adjusted path for consistency (assuming core in src/core)
 import { CreateIssueData, UpdateIssueData } from "./types";
 
 export class IssueHandler extends BaseHandler {
@@ -16,23 +15,29 @@ export class IssueHandler extends BaseHandler {
 
   async handle(req: NextRequest): Promise<NextResponse> {
     const { pathname, searchParams } = req.nextUrl;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const body = await req.json().catch(() => ({} as any));
+    let body: unknown = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Handle non-JSON (e.g., DELETE), keep as {}
+    }
     const token = req.headers.get("Authorization") || "";
     if (!token) throw new AppError("Unauthorized", 401);
 
     try {
-      const id = pathname.split("/").pop(); // For /issues/[id]
+      const pathParts = pathname.split("/");
+      const id = pathParts[pathParts.length - 1]; // Safer split/pop
 
       if (req.method === "POST" && pathname.includes("/issues")) {
         const validator = IssueValidator.forCreate();
-        const data: CreateIssueData = validator.validate(body); // Now explicitly typed
+        const data: CreateIssueData = validator.validate(body);
         const result = await this.service.create(data, token);
         return this.json(result, 201);
       }
 
       if (req.method === "GET" && pathname.includes("/issues")) {
-        if (id === "issues" || !id) {
+        if (!id || id === "issues") {
+          // Handle list case better
           // List
           const type = searchParams.get("type");
           const result = await this.service.list(
@@ -42,14 +47,14 @@ export class IssueHandler extends BaseHandler {
           return this.json(result);
         } else {
           // Single
-          const result = await this.service.getOne(id!, token);
+          const result = await this.service.getOne(id, token);
           return this.json(result);
         }
       }
 
       if (req.method === "PUT" && id) {
         const validator = IssueValidator.forUpdate();
-        const data: UpdateIssueData = validator.validate(body); // Explicit
+        const data: UpdateIssueData = validator.validate(body);
         const result = await this.service.update(id, data, token);
         return this.json(result);
       }

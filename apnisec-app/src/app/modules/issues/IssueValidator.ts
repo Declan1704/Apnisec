@@ -1,31 +1,19 @@
 import { z } from "zod";
-import { BaseValidator } from "../../core/Validator";
-
+import { BaseValidator } from "../../core/Validator"; // Adjust path if your core is in src/core
 import { createIssueSchema, updateIssueSchema } from "./types";
 
-export const createSchema = z.object({
-  type: z.enum(["cloud-security", "reteaming-assessment", "vapt"] as const, {
-    message: "Invalid issue type",
-  }),
-  title: z.string().min(1, "Title required").max(255),
-  description: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]).optional(),
-  status: z.enum(["open", "in-progress", "closed"]).optional(),
-});
-
-const updateSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]).optional(),
-  status: z.enum(["open", "in-progress", "closed"]).optional(),
-});
-
-export class IssueValidator extends BaseValidator {
-  static forCreate() {
-    return new IssueValidator(createIssueSchema);
+export class IssueValidator {
+  // Explicit 'export' here
+  // Static factory methods return specific BaseValidator instances
+  // TS infers exact types via generics on BaseValidator
+  static forCreate(): BaseValidator<typeof createIssueSchema> {
+    // BaseValidator is abstract; cast to any to construct an instance here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new (BaseValidator as any)(createIssueSchema);
   }
-
-  static forUpdate() {
-    return new IssueValidator(updateIssueSchema);
+  static forUpdate(): BaseValidator<typeof updateIssueSchema> {
+    // BaseValidator is abstract; cast to any to construct an instance here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new (BaseValidator as any)(updateIssueSchema);
   }
 }
