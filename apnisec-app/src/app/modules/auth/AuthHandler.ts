@@ -4,19 +4,24 @@ import { AuthService } from "./AuthService";
 import { AuthValidator } from "./AuthValidator";
 import { JwtUtils } from "../../core/JwtUtils";
 import { AppError } from "@/app/core/AppError";
+import { RateLimiter } from "../../core/RateLimiter";
 
 export class AuthHandler extends BaseHandler {
   private service: AuthService;
-
+  private rateLimiter: RateLimiter;
   constructor(service: AuthService) {
     super();
     this.service = service;
+    this.rateLimiter = new RateLimiter();
   }
 
   async handle(req: NextRequest): Promise<NextResponse> {
     const { pathname } = req.nextUrl;
+    let rateHeaders: HeadersInit = {};
 
     try {
+      const rateInfo = await this.rateLimiter.check(req);
+      rateHeaders = this.rateLimiter.getHeaders(rateInfo);
       if (pathname.includes("/register")) {
         const body = await req.json();
         const validator = AuthValidator.forRegister();
@@ -27,7 +32,7 @@ export class AuthHandler extends BaseHandler {
         };
 
         const result = await this.service.register(data);
-        return this.json(result, 201);
+        return this.json(result, 201, rateHeaders);
       }
 
       if (pathname.includes("/login")) {
@@ -67,6 +72,22 @@ export class AuthHandler extends BaseHandler {
 
       throw new AppError("Route not found", 404);
     } catch (err) {
+      if (err instanceof AppError && err.statusCode === 429) {
+        return NextResponse.json(
+          { error: err.message },
+          {
+            status: 429,
+            headers: {
+              ...rateHeaders,
+              ...this.rateLimiter.getHeaders({
+                remaining: 0,
+                reset: Math.floor(Date.now() / 1000 + 900),
+                limit: 100,
+              }),
+            },
+          }
+        );
+      }
       return this.error(err as Error);
     }
   }

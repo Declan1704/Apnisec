@@ -4,8 +4,12 @@ import { AppError } from "./AppError";
 export abstract class BaseHandler {
   abstract handle(req: NextRequest): Promise<NextResponse>;
 
-  protected json(data: unknown, status: number = 200): NextResponse {
-    return NextResponse.json(data, { status });
+  protected json(
+    data: unknown,
+    status: number = 200,
+    headers: HeadersInit = {}
+  ): NextResponse {
+    return NextResponse.json(data, { status, headers });
   }
 
   protected error(err: AppError | Error): NextResponse {
