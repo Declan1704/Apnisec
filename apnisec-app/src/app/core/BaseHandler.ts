@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AppError } from "./AppError";
-
+import { RateLimiter } from "./RateLimiter";
 export abstract class BaseHandler {
+  protected limiter: RateLimiter;
+
+  constructor(limiter: RateLimiter) {
+    this.limiter = limiter;
+  }
   abstract handle(req: NextRequest): Promise<NextResponse>;
 
   protected json(
     data: unknown,
     status: number = 200,
-    headers: HeadersInit = {}
+    headers?: Headers
   ): NextResponse {
-    return NextResponse.json(data, { status, headers });
+    const res = NextResponse.json(data, { status });
+    if (headers) {
+      headers.forEach((value, key) => res.headers.set(key, value));
+    }
+    return res;
   }
 
   protected error(err: AppError | Error): NextResponse {

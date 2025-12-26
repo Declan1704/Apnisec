@@ -1,72 +1,50 @@
+import { NextRequest } from "next/server";
 import { AppError } from "./AppError";
 
+interface RateEntry {
+  count: number;
+  resetTime: Date;
+}
+
 export class RateLimiter {
-  private requests: Map<string, { count: number; resetTime: number }> =
-    new Map();
-  private windowMs: number = 15 * 60 * 1000; // 15 mins
-  private maxRequests: number = 100;
+  private requests: Map<string, RateEntry> = new Map();
+  private limit = 100;
+  private windowMs = 15 * 60 * 1000; // 15 minutes
 
-  constructor() {
-    // Cleanup expired entries every 5 mins
-    setInterval(() => this.cleanup(), 5 * 60 * 1000);
-  }
-
-  private getKey(req: Request): string {
-    return (
+  private getKey(req: NextRequest, userId?: string): string {
+    if (userId) return `user:${userId}`;
+    const ip =
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
-      "anonymous"
-    ); // IP fallback
+      "unknown";
+    return `ip:${ip}`;
   }
 
-  private cleanup(): void {
+  public checkAndIncrement(req: NextRequest, userId?: string): Headers {
+    const key = this.getKey(req, userId);
     const now = Date.now();
-    for (const [key, entry] of this.requests.entries()) {
-      if (now - entry.resetTime > this.windowMs) {
-        this.requests.delete(key);
-      }
-    }
-  }
 
-  async check(
-    req: Request
-  ): Promise<{ remaining: number; reset: number; limit: number }> {
-    const key = this.getKey(req);
-    const now = Date.now();
     let entry = this.requests.get(key);
 
-    if (!entry || now - entry.resetTime > this.windowMs) {
-      entry = { count: 1, resetTime: now };
+    if (!entry || now > entry.resetTime.getTime()) {
+      entry = { count: 1, resetTime: new Date(now + this.windowMs) };
       this.requests.set(key, entry);
-      return {
-        remaining: this.maxRequests - 1,
-        reset: Math.floor((now + this.windowMs) / 1000),
-        limit: this.maxRequests,
-      };
+    } else {
+      if (entry.count >= this.limit) {
+        throw new AppError("Rate limit exceeded", 429);
+      }
+      entry.count++;
+      this.requests.set(key, entry);
     }
 
-    if (entry.count >= this.maxRequests) {
-      throw new AppError("Rate limit exceeded. Try again later.", 429);
-    }
+    const headers = new Headers();
+    headers.set("X-RateLimit-Limit", this.limit.toString());
+    headers.set("X-RateLimit-Remaining", (this.limit - entry.count).toString());
+    headers.set(
+      "X-RateLimit-Reset",
+      Math.floor(entry.resetTime.getTime() / 1000).toString()
+    );
 
-    entry.count++;
-    return {
-      remaining: this.maxRequests - entry.count,
-      reset: Math.floor((entry.resetTime + this.windowMs) / 1000),
-      limit: this.maxRequests,
-    };
-  }
-
-  // For headers
-  getHeaders(stats: {
-    remaining: number;
-    reset: number;
-    limit: number;
-  }): HeadersInit {
-    return {
-      "X-RateLimit-Limit": stats.limit.toString(),
-      "X-RateLimit-Remaining": stats.remaining.toString(),
-      "X-RateLimit-Reset": stats.reset.toString(),
-    };
+    return headers;
   }
 }

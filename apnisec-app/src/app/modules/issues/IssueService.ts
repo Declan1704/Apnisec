@@ -70,6 +70,6 @@ export class IssueService {
     if (issue.userId !== decoded.userId)
       throw new AppError("Unauthorized", 403);
     await this.issueRepo.delete(id);
-    return { message: "Issue deleted" };
+    return;
   }
 }

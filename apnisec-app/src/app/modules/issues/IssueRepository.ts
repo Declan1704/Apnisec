@@ -3,6 +3,10 @@ import { BaseRepository } from "../../core/BaseRepository";
 import { AppError } from "../../core/AppError";
 
 export class IssueRepository extends BaseRepository {
+  constructor(prisma: PrismaClient) {
+    super(prisma); // ← This passes prisma to BaseRepository
+  }
+
   async create(data: {
     type: string;
     title: string;
