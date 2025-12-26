@@ -3,15 +3,22 @@ import { JwtUtils } from "../../core/JwtUtils";
 import { UserRepository } from "./UserRepository";
 import { AppError } from "../../core/AppError";
 import { CustomJwtPayload } from "../../core/JwtUtils";
+import { EmailService } from "../../core/EmailService";
 
 export class AuthService {
   private userRepo: UserRepository;
   private jwtUtils: JwtUtils;
   private saltRounds = 12;
+  private emailService?: EmailService;
 
-  constructor(userRepo: UserRepository, jwtUtils: JwtUtils) {
+  constructor(
+    userRepo: UserRepository,
+    jwtUtils: JwtUtils,
+    emailService?: EmailService
+  ) {
     this.userRepo = userRepo;
     this.jwtUtils = jwtUtils;
+    this.emailService = emailService;
   }
 
   async register(data: { email: string; password: string; name?: string }) {
@@ -21,6 +28,13 @@ export class AuthService {
       password: hashedPassword,
     });
     const token = this.jwtUtils.sign({ userId: user.id, email: user.email });
+
+    if (this.emailService) {
+      this.emailService
+        .sendWelcome(user.email, user.name || undefined)
+        .catch(console.error);
+    }
+
     return { user: { id: user.id, email: user.email, name: user.name }, token };
   }
 

@@ -1,3 +1,4 @@
+// src/core/RateLimiter.ts
 import { NextRequest } from "next/server";
 import { AppError } from "./AppError";
 
@@ -16,6 +17,7 @@ export class RateLimiter {
     const ip =
       req.headers.get("x-forwarded-for") ||
       req.headers.get("x-real-ip") ||
+      req.headers.get("x-real-ip") ||
       "unknown";
     return `ip:${ip}`;
   }
@@ -28,14 +30,14 @@ export class RateLimiter {
 
     if (!entry || now > entry.resetTime.getTime()) {
       entry = { count: 1, resetTime: new Date(now + this.windowMs) };
-      this.requests.set(key, entry);
     } else {
       if (entry.count >= this.limit) {
         throw new AppError("Rate limit exceeded", 429);
       }
       entry.count++;
-      this.requests.set(key, entry);
     }
+
+    this.requests.set(key, entry);
 
     const headers = new Headers();
     headers.set("X-RateLimit-Limit", this.limit.toString());
@@ -46,5 +48,15 @@ export class RateLimiter {
     );
 
     return headers;
+  }
+
+  // Optional: helper for 429 response headers
+  public getHeaders(remaining = 0, resetOffset = 900) {
+    const reset = Math.floor(Date.now() / 1000 + resetOffset);
+    return {
+      "X-RateLimit-Limit": this.limit.toString(),
+      "X-RateLimit-Remaining": remaining.toString(),
+      "X-RateLimit-Reset": reset.toString(),
+    };
   }
 }

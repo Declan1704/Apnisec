@@ -6,11 +6,21 @@ import { JwtUtils } from "../../../core/JwtUtils";
 import { IssueService } from "../../../modules/issues/IssueService";
 import { IssueHandler } from "../../../modules/issues/IssueHandler";
 import { RateLimiter } from "../../../core/RateLimiter";
+import { EmailService } from "../../../core/EmailService";
 
 const userRepo = new UserRepository(prisma);
 const issueRepo = new IssueRepository(prisma);
 const jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
-const issueService = new IssueService(issueRepo, userRepo, jwtUtils);
+const emailService = new EmailService(
+  process.env.RESEND_API_KEY!,
+  process.env.RESEND_FROM_EMAIL || "noreply@apnisec.local"
+);
+const issueService = new IssueService(
+  issueRepo,
+  userRepo,
+  jwtUtils,
+  emailService
+);
 const limiter = new RateLimiter();
 const issueHandler = new IssueHandler(issueService, limiter);
 
