@@ -22,4 +22,20 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+  issues Issue[]
+}
+
+model Issue {
+  id          String   @id @default(cuid())
+  type        String   // 'cloud-security', 'reteaming-assessment', 'vapt'
+  title       String
+  description String?
+  priority    String?  // e.g., 'low', 'medium', 'high'
+  status      String?  // e.g., 'open', 'in-progress', 'closed'
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("issues")
 }

@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import { JwtUtils } from "../../core/JwtUtils";
 import { UserRepository } from "./UserRepository";
 import { AppError } from "../../core/AppError";
+import { CustomJwtPayload } from "../../core/JwtUtils";
 
 export class AuthService {
   private userRepo: UserRepository;
@@ -25,6 +26,7 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.userRepo.findByEmail(email);
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new AppError("Invalid credentials", 401);
     }

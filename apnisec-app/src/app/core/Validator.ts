@@ -1,13 +1,14 @@
-import { z } from "zod";
+import { z, ZodType } from "zod";
 
-export abstract class BaseValidator {
-  protected schema: z.ZodSchema;
+export abstract class BaseValidator<T extends ZodType> {
+  protected schema: T;
 
-  constructor(schema: z.ZodSchema) {
+  constructor(schema: T) {
     this.schema = schema;
   }
 
-  validate(data: unknown): z.infer<typeof this.schema> {
+  validate(data: unknown): z.infer<T> {
+    // Now infers exact shape from T
     return this.schema.parse(data);
   }
 }
