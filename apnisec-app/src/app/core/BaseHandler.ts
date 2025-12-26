@@ -7,9 +7,6 @@ export abstract class BaseHandler {
   protected limiter?: RateLimiter;
 
   constructor(limiter: RateLimiter) {
-    if (!limiter) {
-      throw new Error("RateLimiter instance is required"); // This will crash early if forgotten
-    }
     this.limiter = limiter;
   }
 
