@@ -1,6 +1,10 @@
-import * as jwt from "jsonwebtoken";
+import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
 import { AppError } from "./AppError";
-import type { StringValue } from "ms";
+
+export interface CustomJwtPayload extends JwtPayload {
+  userId: string;
+  email: string;
+}
 
 export class JwtUtils {
   private secret: jwt.Secret;
@@ -9,13 +13,22 @@ export class JwtUtils {
     this.secret = secret;
   }
 
-  sign(payload: object, expiresIn: StringValue | number = "15m"): string {
+  sign(
+    payload: { userId: string; email: string },
+    expiresIn: SignOptions["expiresIn"] = "15m"
+  ): string {
     return jwt.sign(payload, this.secret, { expiresIn });
   }
 
-  verify(token: string): jwt.JwtPayload | string {
+  verify(token: string): CustomJwtPayload {
     try {
-      return jwt.verify(token, this.secret);
+      const decoded = jwt.verify(token, this.secret) as CustomJwtPayload;
+
+      if (typeof decoded === "string") {
+        throw new AppError("Invalid token payload", 401);
+      }
+
+      return decoded;
     } catch {
       throw new AppError("Invalid token", 401);
     }
