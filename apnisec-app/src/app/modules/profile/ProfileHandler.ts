@@ -3,12 +3,13 @@ import { BaseHandler } from "../../core/BaseHandler";
 import { ProfileService } from "./ProfileService";
 import { ProfileValidator } from "./ProfileValidator";
 import { AppError } from "../../core/AppError";
+import { RateLimiter } from "@/app/core/RateLimiter";
 
 export class ProfileHandler extends BaseHandler {
   private service: ProfileService;
-
-  constructor(service: ProfileService) {
-    super();
+  protected limiter?: RateLimiter | undefined;
+  constructor(service: ProfileService, limiter: RateLimiter) {
+    super(limiter);
     this.service = service;
   }
 

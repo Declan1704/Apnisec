@@ -7,10 +7,7 @@ import { AuthHandler } from "../../../modules/auth/AuthHandler";
 import { EmailService } from "../../../core/EmailService";
 import { RateLimiter } from "../../../core/RateLimiter";
 
-const emailService = new EmailService(
-  process.env.RESEND_API_KEY!,
-  process.env.RESEND_FROM_EMAIL || "noreply@apnisec.local"
-);
+const emailService = new EmailService(process.env.RESEND_API_KEY!);
 const userRepo = new UserRepository(prisma);
 const jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
 const rateLimiter = new RateLimiter();
