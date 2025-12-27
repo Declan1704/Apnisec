@@ -1,6 +1,6 @@
 import { z, ZodType } from "zod";
 
-export abstract class BaseValidator<T extends ZodType> {
+export class BaseValidator<T extends ZodType> {
   protected schema: T;
 
   constructor(schema: T) {
