@@ -2,11 +2,9 @@ import { JwtUtils } from "../../core/JwtUtils";
 import { IssueRepository } from "./IssueRepository";
 import { UserRepository } from "../auth/UserRepository";
 import { AppError } from "../../core/AppError";
-import { z } from "zod";
-import { createSchema } from "./IssueValidator";
 import { CustomJwtPayload } from "../../core/JwtUtils";
 import { Issue } from "@/generated/prisma/client";
-import { CreateIssueData, UpdateIssueData } from "./types";
+import { CreateIssueData } from "./types";
 import { EmailService } from "../../core/EmailService";
 
 export class IssueService {

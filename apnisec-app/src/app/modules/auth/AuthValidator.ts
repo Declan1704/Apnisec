@@ -12,7 +12,8 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password required"),
 });
 
-export class AuthValidator extends BaseValidator {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export class AuthValidator extends BaseValidator<any> {
   static forRegister() {
     return new AuthValidator(registerSchema);
   }

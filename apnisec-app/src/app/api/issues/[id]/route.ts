@@ -11,10 +11,7 @@ import { EmailService } from "../../../core/EmailService";
 const userRepo = new UserRepository(prisma);
 const issueRepo = new IssueRepository(prisma);
 const jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
-const emailService = new EmailService(
-  process.env.RESEND_API_KEY!,
-  process.env.RESEND_FROM_EMAIL || "noreply@apnisec.local"
-);
+const emailService = new EmailService(process.env.RESEND_API_KEY!);
 const issueService = new IssueService(
   issueRepo,
   userRepo,

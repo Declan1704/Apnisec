@@ -22,7 +22,7 @@ export class IssueHandler extends BaseHandler {
   limiter: RateLimiter;
 
   constructor(service: IssueService, limiter: RateLimiter) {
-    super();
+    super(limiter);
     this.limiter = limiter;
     this.service = service;
     this.jwtUtils = new JwtUtils(process.env.JWT_SECRET!);
